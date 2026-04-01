@@ -12,6 +12,12 @@ from file_handler.file_io import read_file, write_file
 # =========================
 def format_key(key_str: str) -> bytes:
     key = key_str.encode("utf-8")
+    if len(key) > 16:
+        print(f"\n[!] CẢNH BÁO: Key bảo mật của bạn đang dài {len(key)} ký tự (vượt quá 16 bytes).")
+        print("    Hệ thống sẽ tự động lấy 16 ký tự đầu tiên để làm khóa chuẩn AES-128.")
+    elif len(key) < 16:
+        print(f"\n[*] Lưu ý: Key của bạn ngắn {len(key)} ký tự (yêu cầu 16 bytes).")
+        print("    Hệ thống sẽ tự động thêm ký tự phụ vào đuôi cho đủ 16 bytes.")
     return key.ljust(16, b'0')[:16]
 
 
@@ -67,7 +73,6 @@ def sender_mode():
 
                 conn.sendall(payload)
                 print("[+] Đã mã hóa")
-                print(f"[*] Ciphertext: {ciphertext}")
                 print("[+] Gửi file thành công")
                 break
 
