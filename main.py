@@ -66,13 +66,22 @@ def sender_mode():
                 print("[*] Đang mã hóa...")
                 ciphertext = aes_cbc_encrypt(data, key, iv)
 
+                # ==========================================
+                # Lưu tạm file Ciphertext rác cho sender
+                enc_dir = "encrypted_files"
+                os.makedirs(enc_dir, exist_ok=True)
+                enc_out_path = os.path.join(enc_dir, "encrypted_" + filename.decode("utf-8"))
+                write_file(enc_out_path, ciphertext)
+                print(f"[+] Đã trút dữ liệu mã hóa ra file (để demo): {enc_out_path}")
+                # ==========================================
+
                 filename_len = len(filename).to_bytes(4, "big")
                 cipher_len   = len(ciphertext).to_bytes(4, "big")
 
                 payload = filename_len + filename + cipher_len + iv + ciphertext
 
                 conn.sendall(payload)
-                print("[+] Đã mã hóa")
+                print("[+] Đã mã hóa và gửi qua Socket")
                 print("[+] Gửi file thành công")
                 break
 
