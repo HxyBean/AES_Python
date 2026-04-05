@@ -1,64 +1,44 @@
 # 🔒 AES File Transfer
 
-Dự án truyền và nhận file qua mạng bằng **Socket TCP** sử dụng thuật toán mã hóa bảo mật cao **AES-128 (Advanced Encryption Standard)** ở chế độ **CBC (Cipher Block Chaining)**.
+Dự án truyền và nhận file qua mạng bằng **Socket TCP** sử dụng hệ mã hóa đỉnh cao **AES (Advanced Encryption Standard)** ở chế độ **CBC (Cipher Block Chaining)**. 
 
-> **Điểm nổi bật:** Lõi mã hóa hóa AES trong dự án (bao gồm `S-Box`, `ShiftRows`, `MixColumns` và Toán học Galois Field) được xây dựng lập trình thủ công hoàn toàn từ đầu theo tiêu chuẩn FIPS 197 mà không sử dụng bất kỳ thư viện cryptography ngoài nào!
+> **Điểm nổi bật siêu việt:** Toàn bộ các công đoạn cốt lõi nhất của AES (`S-Box`, `ShiftRows`, `MixColumns`, Cơ chế nở Key `Key Expansion`, Toán học trên trường Galois) được tự lập trình 100% bằng tay theo chuẩn quốc tế **FIPS-197**. Chữ "Crypto" duy nhất ở đây là mồ hôi công sức trải qua hàng trăm ma trận!
 
 ---
+
+## 🔥 Tính năng vượt trội
+- **Hỗ trợ Trọn bộ Sinh Tồn:** Chạy mượt mà xuyên suốt `AES-128` (10 vòng lặp), `AES-192` (12 vòng lặp) và `AES-256` (14 vòng lặp cùng với lớp giáp SubWord kép).
+- **Hàm Dẫn xuất khóa KDF Chuyên Nghiệp:** Sử dụng thuật toán băm `SHA-256` làm cơ sở tịnh tiến mật khẩu. Nhờ vậy, người dùng có thể nhập Mật khẩu ngắn tủn mủn (như "123") hoặc dài ngút ngàn, hệ thống vẫn nhai mượt mà vắt thành Keys độc nhất không bao giờ lo mất mát thông tin Entropy.
+- **Trích xuất Ciphertext:** Tích hợp tính năng bóc dữ liệu file Ciphertext ngay ở Sender để sinh viên dễ dàng phô diễn cách file ban đầu bị làm biến dạng nhằng nhịt trước khi bị nén qua đường truyền mạng.
 
 ## 🛠️ Yêu cầu môi trường
 - Hệ điều hành: Windows, Linux hoặc macOS.
-- **Python 3.6+** trở lên. (Dự án dùng các thư viện chuẩn (builtin) trọn gói của Python như `socket`, `os`, nên không cần tải thêm qua `pip`).
+- **Python 3.6+** trở lên. Nền tảng chỉ dùng các tệp tích hợp sẵn như `socket`, `os`, `hashlib`, không bắt cài thêm từ `pip`.
+
+---
 
 ## 🚀 Hướng Dẫn Sử Dụng
-
-Kho phần mềm hoạt động thông qua giao diện Menu lệnh Command-Line (CLI), cung cấp 2 chế độ đóng vai trò Cửa hàng gửi (Server) và Khách hàng nhận (Client).
-
-Dùng lệnh sau trong Terminal (Command Prompt / PowerShell) tại thư mục `AES`:
+Mở Terminal ở thư mục hiện tại, gõ lệnh:
 ```bash
 python main.py
 ```
-Màn hình sẽ hiển thị Menu lựa chọn:
-```text
-========================================
- AES FILE TRANSFER 
-========================================
-1. Send File (Server)
-2. Receive File (Client)
-3. Exit
->
-```
+
+### 🟢 1. Dành Cho Máy Gửi (Sender / Server)
+1. **Enter port:** Bạn tự bịa ra một Cổng mạng (Ví dụ: `8080`) rồi chờ đợi đối phương vác xe tới đón.
+2. **Enter file path:** Gõ tên file bạn muốn gửi (VD: `tayduky.txt`).
+3. **Mời chọn (1/2/3):** Cửa sổ hiện Menu chọn Hệ bảo mật. Nhấn phím `1` để dùng AES-128 truyền thống, `3` để bật AES-256 quân đội.
+4. **Enter secret key:** Nhập vào mật khẩu tự chọn (chữ gì cũng được).
+> Khi máy bạn báo *Gửi thành công*, một tệp `.enc_xyz` chứa chi chít ký tự lập dị sẽ nảy ra ở thư mục `encrypted_files`. Bạn có thể mở lên để ngắm nghía.
+
+### 🔵 2. Dành Cho Máy Nhận (Receiver / Client)
+1. **Enter sender IP:** IP của máy người gửi (Chơi chung máy thì gõ `localhost`, chơi khác máy gõ IP mạng ảo IPv4 `192.168.x.x`).
+2. **Enter port:** Gõ cái cổng đối phương nãy chọn, ở trên là `8080`.
+3. **Mời chọn (1/2/3):** Bước tối quan trọng. Nếu đối phương vặn khóa AES-256 mà bạn chọn AES-128 để mở thì cưa chìa đứt đôi ráng chịu. Hãy chọn cho giống!
+4. **Enter secret key:** Nhập mật khẩu gốc.
+> Dữ liệu bung nén sẽ nằm rình sẵn tại thư mục tải rơi `received_files/`.
 
 ---
 
-### 🟢 1. Chế độ Gửi File - Sender (Đóng vai trò Server)
-Ở Menu, chọn `1` để trở thành máy chủ cho file.
-
-1. **Enter port:** Chọn một con số lớn (Ví dụ: `9999`) làm Cổng mạng để chương trình mở ra và đứng đợi (Binding/Listening).
-2. **Enter file path:** Nhập đường dẫn trỏ tới file trên máy tính mà bạn muốn truyền đi.
-   - *Ví dụ ở cùng khu vực code:* `test.txt`
-   - *Ví dụ thư mục ngẫu nhiên:* `C:\Images\avatar.png`
-3. **Enter secret key:** Nhập vào mật khẩu (Khóa) bảo vệ tự chọn. 
-   - *Lưu ý:* Chương trình sẽ tự động định dạng khóa này về 16 bytes (AES-128). Phải nhớ kỹ Mật khẩu này để gửi cho người nhận!
-
-Sau khi nhập xong, máy Gửi sẽ treo trạng thái báo hiệu `[*] Chờ receiver kết nối...`.
-
----
-
-### 🔵 2. Chế độ Nhận File - Receiver (Đóng vai trò Client)
-Ở máy người nhận (hoặc chạy tab mới), chọn `2` ở Menu để vào chế độ tải.
-
-1. **Enter sender IP:** Nhập địa chỉ IP mạng của máy gửi.
-   - Nếu bạn đang chạy test cả 2 cái trên *cùng 1 máy tính của bạn*, hãy nhập: `127.0.0.1` (localhost).
-   - Nếu gửi qua mạng WiFi nội bộ, chạy lệnh `ipconfig` ở máy gửi để lấy IP IPv4.
-2. **Enter port:** Phải nhập y hệt con số Cổng (VD: `9999`) mà máy gửi mở.
-3. **Enter secret key:** **PHẢI NHẬP GIỐNG TỪNG CHỮ CÁI** với Secret key mà phía máy gửi điền. Sai một ký tự là bạn sẽ nhận được một file rác!
-
-Chương trình sẽ xông vào kết nối, Tải cục dữ liệu khổng lồ bị mã hóa (Ciphertext) về RAM, đúc ra plaintext dùng Thuật toán biến dạng Galois và lưu thành công File vào máy!
-
-> **Nơi nhận hàng:** Toàn bộ file giải mã thu được sẽ tự động lưu vào trong thư mục `received_files/` dưới tiền tố `decrypted_[TênGốc]`.
-
----
-
-## ⚠️ Cảnh báo Bảo mật
-Nếu bạn điền sai `Secret Key` bên phía Receiver, quá trình giải nén AES của phần lõi sẽ nhận diện sự sai lệch Padding. Hệ thống sẽ **Cảnh Báo Chữ Vàng/Đỏ** và File tải về sẽ chứa toàn các ký tự Data Rác lộn xộn, bị hỏng. Tính tàng hình bảo mật của dữ liệu đã trọn vẹn!
+## ⚠️ Giải Trí & Bug Control
+Hệ thống có cài cắm mô-đun Bắt lỗi Padding thông minh ở CBC. Bạn hãy test thử bằng cách ở bước Khách hàng, bạn *Cố tình nhập sai Mật khẩu* hoặc chọn độ chếch lệch AES (Máy kia Gửi cấp lõi Số 3, bạn tải Chọn cấp Số 1). 
+Kết quả trả về không bị crash, mà hệ thống sẽ bật rạp xirk **CẢNH BÁO BỊ HỎNG** và file giải mã sẽ rớt ra hàng vạn loại Ký tự ngoài hành tinh. Đảm bảo tính nặc danh rác Rất cao!
