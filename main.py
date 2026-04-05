@@ -7,18 +7,36 @@ from ase_core.aes import aes_cbc_encrypt, aes_cbc_decrypt
 from file_handler.file_io import read_file, write_file
 
 
+import hashlib
+
 # =========================
 # UTIL
 # =========================
-def format_key(key_str: str) -> bytes:
-    key = key_str.encode("utf-8")
-    if len(key) > 16:
-        print(f"\n[!] CẢNH BÁO: Key bảo mật của bạn đang dài {len(key)} ký tự (vượt quá 16 bytes).")
-        print("    Hệ thống sẽ tự động lấy 16 ký tự đầu tiên để làm khóa chuẩn AES-128.")
-    elif len(key) < 16:
-        print(f"\n[*] Lưu ý: Key của bạn ngắn {len(key)} ký tự (yêu cầu 16 bytes).")
-        print("    Hệ thống sẽ tự động thêm ký tự phụ vào đuôi cho đủ 16 bytes.")
-    return key.ljust(16, b'0')[:16]
+def format_key(key_str: str, req_len: int) -> bytes:
+    """
+    Thay vì cắt xén hoặc phân bổ chuỗi gây ra sai lệch Padding,
+    chúng ta sử dụng thuật toán Băm SHA-256 để tạo mã băm cố định.
+    Dù nhập 1 hay 1000 ký tự, nó vẫn lấy dải byte phân bố chuẩn AES.
+    """
+    key_bytes = key_str.encode("utf-8")
+    derived_key = hashlib.sha256(key_bytes).digest()
+    return derived_key[:req_len]
+
+def choose_aes_mode() -> int:
+    while True:
+        print("\n[ Chọn chế độ mã hóa ]")
+        print("1. AES-128 (16 bytes key)")
+        print("2. AES-192 (24 bytes key)")
+        print("3. AES-256 (32 bytes key)")
+        choice = input("Mời chọn (1/2/3): ")
+        if choice == '1':
+            return 16
+        elif choice == '2':
+            return 24
+        elif choice == '3':
+            return 32
+        else:
+            print("[!] Lựa chọn không hợp lệ, vui lòng chọn lại.")
 
 
 def recv_exact(conn, n):
@@ -39,8 +57,11 @@ def sender_mode():
 
     port = int(input("Enter port: "))
     file_path = input("Enter file path: ")
-    key_input = input("Enter secret key: ")
-    key = format_key(key_input)
+    
+    req_len = choose_aes_mode()
+    
+    key_input = input(f"Enter secret key ({req_len} ký tự): ")
+    key = format_key(key_input, req_len)
 
     data = read_file(file_path)
     if data is None:
@@ -101,8 +122,11 @@ def receiver_mode():
 
     server_ip = input("Enter sender IP: ")
     port = int(input("Enter port: "))
-    key_input = input("Enter secret key: ")
-    key = format_key(key_input)
+    
+    req_len = choose_aes_mode()
+    
+    key_input = input(f"Enter secret key ({req_len} ký tự): ")
+    key = format_key(key_input, req_len)
 
     output_dir = "received_files"
     os.makedirs(output_dir, exist_ok=True)

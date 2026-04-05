@@ -32,25 +32,32 @@ def key_expansion(key: bytes) -> list:
         Nr = 10  (số rounds)
         Nb = 4   (số columns của state)
     """
-    if len(key) != 16:
-        raise ValueError("AES-128 yêu cầu key đúng 16 bytes")
+    if len(key) == 16:
+        Nk, Nr = 4, 10
+    elif len(key) == 24:
+        Nk, Nr = 6, 12
+    elif len(key) == 32:
+        Nk, Nr = 8, 14
+    else:
+        raise ValueError("AES yêu cầu key 16, 24, hoặc 32 bytes")
 
-    Nk = 4
-    Nr = 10
-    total_words = Nb = 4
-    W = []  # mảng 44 words
+    Nb = 4
+    W = []  # mảng các words
 
-    # --- Khởi tạo 4 word đầu từ key gốc ---
+    # --- Khởi tạo Nk word đầu từ key gốc ---
     for i in range(Nk):
         W.append([key[4*i], key[4*i+1], key[4*i+2], key[4*i+3]])
 
     # --- Sinh các word còn lại ---
-    for i in range(Nk, 4 * (Nr + 1)):
+    for i in range(Nk, Nb * (Nr + 1)):
         temp = W[i - 1][:]
         if i % Nk == 0:
             # RotWord → SubWord → XOR Rcon
             temp = _sub_word(_rot_word(temp))
             temp[0] ^= RCON[i // Nk]
+        elif Nk > 6 and i % Nk == 4:
+            # Thêm lớp SubWord đối với key 256-bit
+            temp = _sub_word(temp)
         W.append([W[i - Nk][j] ^ temp[j] for j in range(4)])
 
     # --- Tổ chức thành 11 round keys, mỗi cái gồm 4 words ---

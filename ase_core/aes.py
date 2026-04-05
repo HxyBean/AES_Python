@@ -130,16 +130,17 @@ def _add_round_key(state: list, round_key: list) -> list:
 
 def encrypt_block(block: bytes, round_keys: list) -> bytes:
     """
-    Mã hóa 1 block 16 bytes với AES-128 (10 rounds).
+    Mã hóa 1 block 16 bytes với AES (10, 12, hoặc 14 rounds).
     round_keys: output của key_expansion()
     """
+    Nr = len(round_keys) - 1
     state = _bytes_to_state(block)
 
     # Initial round
     state = _add_round_key(state, round_keys[0])
 
-    # Rounds 1-9
-    for r in range(1, 10):
+    # Rounds 1 to Nr-1
+    for r in range(1, Nr):
         state = _sub_bytes(state)
         state = _shift_rows(state)
         state = _mix_columns(state)
@@ -148,22 +149,23 @@ def encrypt_block(block: bytes, round_keys: list) -> bytes:
     # Final round (no MixColumns)
     state = _sub_bytes(state)
     state = _shift_rows(state)
-    state = _add_round_key(state, round_keys[10])
+    state = _add_round_key(state, round_keys[Nr])
 
     return _state_to_bytes(state)
 
 
 def decrypt_block(block: bytes, round_keys: list) -> bytes:
     """
-    Giải mã 1 block 16 bytes với AES-128 (10 rounds ngược).
+    Giải mã 1 block 16 bytes với AES (10, 12, hoặc 14 rounds ngược).
     """
+    Nr = len(round_keys) - 1
     state = _bytes_to_state(block)
 
     # Initial round (dùng round key cuối)
-    state = _add_round_key(state, round_keys[10])
+    state = _add_round_key(state, round_keys[Nr])
 
-    # Rounds 9-1 (ngược)
-    for r in range(9, 0, -1):
+    # Rounds Nr-1 to 1 (ngược)
+    for r in range(Nr - 1, 0, -1):
         state = _inv_shift_rows(state)
         state = _inv_sub_bytes(state)
         state = _add_round_key(state, round_keys[r])
@@ -187,8 +189,8 @@ def aes_cbc_encrypt(plaintext: bytes, key: bytes, iv: bytes) -> bytes:
     - Tự động pad PKCS7
     - Trả về ciphertext (không bao gồm IV)
     """
-    if len(key) != 16:
-        raise ValueError("Key phải đúng 16 bytes (AES-128)")
+    if len(key) not in (16, 24, 32):
+        raise ValueError("Key phải là 16, 24 hoặc 32 bytes (AES)")
     if len(iv) != 16:
         raise ValueError("IV phải đúng 16 bytes")
 
@@ -214,8 +216,8 @@ def aes_cbc_decrypt(ciphertext: bytes, key: bytes, iv: bytes) -> bytes:
     - Tự động unpad PKCS7
     - Trả về plaintext gốc
     """
-    if len(key) != 16:
-        raise ValueError("Key phải đúng 16 bytes (AES-128)")
+    if len(key) not in (16, 24, 32):
+        raise ValueError("Key phải là 16, 24 hoặc 32 bytes (AES)")
     if len(iv) != 16:
         raise ValueError("IV phải đúng 16 bytes")
     if len(ciphertext) % 16 != 0:
