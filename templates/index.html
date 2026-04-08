@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AES File Transfer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ─────────────── RESET & BASE ─────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d0f14;
+      --surface:   #13161e;
+      --card:      #1a1e2a;
+      --border:    #252b3b;
+      --accent:    #6366f1;
+      --accent2:   #818cf8;
+      --green:     #22c55e;
+      --red:       #ef4444;
+      --yellow:    #f59e0b;
+      --blue:      #60a5fa;
+      --text:      #e2e8f0;
+      --muted:     #64748b;
+      --radius:    14px;
+      --shadow:    0 8px 32px rgba(0,0,0,0.45);
+    }
+
+    html, body {
+      height: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* ─────────────── SCROLLBAR ─────────────── */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+    /* ─────────────── LAYOUT ─────────────── */
+    .page-wrapper {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ─────────────── HEADER ─────────────── */
+    header {
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(13,15,20,0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 38px; height: 38px;
+      background: linear-gradient(135deg, var(--accent), #a855f7);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 0 18px rgba(99,102,241,0.4);
+      flex-shrink: 0;
+    }
+
+    .header-text h1 {
+      font-size: 17px; font-weight: 700;
+      background: linear-gradient(90deg, #e2e8f0, var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-text p { font-size: 11px; color: var(--muted); }
+
+    .header-badge {
+      margin-left: auto;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid rgba(99,102,241,0.35);
+      color: var(--accent2);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* ─────────────── MAIN CONTENT ─────────────── */
+    main {
+      flex: 1;
+      padding: 28px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      max-width: 1300px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .panels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* ─────────────── CARD ─────────────── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: border-color 0.2s;
+    }
+    .card:hover { border-color: rgba(99,102,241,0.3); }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .card-icon {
+      width: 32px; height: 32px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .card-icon.sender  { background: rgba(99,102,241,0.18); }
+    .card-icon.receiver { background: rgba(34,197,94,0.15); }
+
+    .card-title { font-size: 15px; font-weight: 600; }
+    .card-sub   { font-size: 11px; color: var(--muted); }
+
+    .card-body { padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+    /* ─────────────── FORM ELEMENTS ─────────────── */
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+
+    label {
+      font-size: 11px; font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+
+    input[type="text"],
+    input[type="number"],
+    input[type="password"] {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 9px 13px;
+      font-family: inherit;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      width: 100%;
+    }
+    input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,0.15);
+    }
+    input::placeholder { color: var(--muted); }
+
+    /* ─────────────── AES MODE SELECTOR ─────────────── */
+    .aes-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+
+    .aes-option { display: none; }
+    .aes-label {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      padding: 10px 8px;
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      cursor: pointer;
+      transition: all 0.18s;
+      background: var(--surface);
+    }
+    .aes-label:hover { border-color: var(--accent); }
+    .aes-name  { font-size: 13px; font-weight: 600; }
+    .aes-bits  { font-size: 10px; color: var(--muted); }
+
+    .aes-option:checked + .aes-label {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.12);
+      box-shadow: 0 0 0 2px rgba(99,102,241,0.2);
+    }
+    .aes-option:checked + .aes-label .aes-name { color: var(--accent2); }
+
+    /* ─────────────── FILE DROP ZONE ─────────────── */
+    .dropzone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 24px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--accent);
+      background: rgba(99,102,241,0.06);
+    }
+    .dropzone input[type="file"] {
+      position: absolute; inset: 0;
+      opacity: 0; cursor: pointer; width: 100%; height: 100%;
+    }
+    .dropzone-icon  { font-size: 28px; margin-bottom: 8px; }
+    .dropzone-text  { font-size: 13px; color: var(--muted); }
+    .dropzone-text strong { color: var(--accent2); }
+    .file-selected  { font-size: 12px; color: var(--green); margin-top: 8px; font-weight: 500; display: none; }
+
+    /* ─────────────── PASSWORD FIELD ─────────────── */
+    .password-wrap { position: relative; }
+    .password-wrap input { padding-right: 40px; }
+    .eye-btn {
+      position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer;
+      color: var(--muted); font-size: 15px;
+      transition: color 0.15s;
+    }
+    .eye-btn:hover { color: var(--text); }
+
+    /* ─────────────── BUTTONS ─────────────── */
+    .btn {
+      width: 100%;
+      padding: 11px;
+      border: none;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      letter-spacing: 0.3px;
+    }
+
+    .btn-sender {
+      background: linear-gradient(135deg, #6366f1, #818cf8);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(99,102,241,0.35);
+    }
+    .btn-sender:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(99,102,241,0.45); }
+    .btn-sender:active { transform: translateY(0); }
+
+    .btn-receiver {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(34,197,94,0.3);
+    }
+    .btn-receiver:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(34,197,94,0.4); }
+    .btn-receiver:active { transform: translateY(0); }
+
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none !important; }
+
+    /* ─────────────── FILES LIST ─────────────── */
+    .files-list { display: flex; flex-direction: column; gap: 7px; max-height: 140px; overflow-y: auto; }
+    .file-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 8px 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+    .file-item-name { flex: 1; font-size: 12px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .file-item-size { font-size: 11px; color: var(--muted); flex-shrink: 0; }
+    .file-item a {
+      font-size: 11px; font-weight: 600;
+      color: var(--accent2); text-decoration: none;
+      padding: 3px 10px;
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 5px;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .file-item a:hover { background: rgba(99,102,241,0.12); }
+    .files-empty { font-size: 12px; color: var(--muted); text-align: center; padding: 16px 0; }
+
+    /* ─────────────── CONSOLE ─────────────── */
+    .console-card {
+      background: #0a0c10;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .console-header {
+      background: var(--surface);
+      padding: 10px 18px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .console-dots span {
+      display: inline-block;
+      width: 11px; height: 11px; border-radius: 50%;
+      margin-right: 5px;
+    }
+    .dot-red    { background: #ef4444; }
+    .dot-yellow { background: #f59e0b; }
+    .dot-green  { background: #22c55e; }
+    .console-title { font-size: 12px; font-weight: 600; color: var(--muted); margin-left: 4px; letter-spacing: 0.5px; }
+    .console-clear {
+      margin-left: auto; font-size: 11px; color: var(--muted);
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      transition: color 0.15s;
+    }
+    .console-clear:hover { color: var(--text); }
+
+    #console-body {
+      height: 230px; overflow-y: auto;
+      padding: 14px 18px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    .log-line { display: flex; gap: 10px; animation: fadeIn 0.15s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: none; } }
+
+    .log-time { color: #374151; flex-shrink: 0; }
+    .log-msg.info    { color: var(--blue); }
+    .log-msg.success { color: var(--green); }
+    .log-msg.error   { color: var(--red); }
+    .log-msg.waiting { color: var(--yellow); }
+    .log-msg.divider { color: #1f2937; }
+
+    /* ─────────────── STATUS INDICATOR ─────────────── */
+    .status-dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      display: inline-block; margin-right: 6px;
+      background: var(--muted);
+    }
+    .status-dot.active { background: var(--green); animation: pulse 1.5s infinite; }
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.4); }
+      50%       { box-shadow: 0 0 0 5px rgba(34,197,94,0); }
+    }
+
+    /* ─────────────── RESPONSIVE ─────────────── */
+    @media (max-width: 750px) {
+      main { padding: 16px; }
+      .panels { grid-template-columns: 1fr; }
+      header { padding: 12px 16px; }
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- ── HEADER ── -->
+  <header>
+    <div class="logo">🔒</div>
+    <div class="header-text">
+      <h1>AES File Transfer</h1>
+      <p>Truyền file mã hoá an toàn qua mạng TCP</p>
+    </div>
+    <div class="header-badge">FIPS 197</div>
+  </header>
+
+  <main>
+    <!-- ── TWO PANELS ── -->
+    <div class="panels">
+
+      <!-- ── SENDER CARD ── -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon sender">📤</div>
+          <div>
+            <div class="card-title">Sender — Gửi File</div>
+            <div class="card-sub">Đóng vai Server, chờ Receiver kết nối</div>
+          </div>
+        </div>
+        <div class="card-body">
+          <form id="sender-form" enctype="multipart/form-data">
+
+            <!-- File Drop -->
+            <div class="form-group">
+              <label>Chọn File cần gửi</label>
+              <div class="dropzone" id="dropzone">
+                <input type="file" name="file" id="file-input" />
+                <div class="dropzone-icon">📁</div>
+                <div class="dropzone-text">Kéo thả file vào đây hoặc <strong>nhấp để chọn</strong></div>
+                <div class="file-selected" id="file-selected">✅ <span id="file-name-display"></span></div>
+              </div>
+            </div>
+
+            <!-- Port -->
+            <div class="form-group">
+              <label>Cổng mạng (Port)</label>
+              <input type="number" name="port" id="sender-port" value="9999" min="1024" max="65535" />
+            </div>
+
+            <!-- AES Mode -->
+            <div class="form-group">
+              <label>Chế độ mã hoá AES</label>
+              <div class="aes-selector">
+                <input class="aes-option" type="radio" name="aes_mode" id="s-aes128" value="1" checked />
+                <label class="aes-label" for="s-aes128">
+                  <span class="aes-name">AES-128</span>
+                  <span class="aes-bits">16 bytes key</span>
+                </label>
+
+                <input class="aes-option" type="radio" name="aes_mode" id="s-aes192" value="2" />
+                <label class="aes-label" for="s-aes192">
+                  <span class="aes-name">AES-192</span>
+                  <span class="aes-bits">24 bytes key</span>
+                </label>
+
+                <input class="aes-option" type="radio" name="aes_mode" id="s-aes256" value="3" />
+                <label class="aes-label" for="s-aes256">
+                  <span class="aes-name">AES-256</span>
+                  <span class="aes-bits">32 bytes key</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- Secret Key -->
+            <div class="form-group">
+              <label>Secret Key (mật khẩu)</label>
+              <div class="password-wrap">
+                <input type="password" name="secret_key" id="sender-key" placeholder="Nhập mật khẩu bảo mật..." />
+                <button type="button" class="eye-btn" onclick="togglePwd('sender-key', this)">👁</button>
+              </div>
+            </div>
+
+            <button type="submit" class="btn btn-sender" id="btn-send">
+              <span>🚀</span> Khởi động Server & Gửi File
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── RECEIVER CARD ── -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon receiver">📥</div>
+          <div>
+            <div class="card-title">Receiver — Nhận File</div>
+            <div class="card-sub">Đóng vai Client, kết nối tới Sender</div>
+          </div>
+        </div>
+        <div class="card-body">
+
+          <!-- IP + Port -->
+          <div style="display:grid; grid-template-columns:1fr auto; gap:10px;">
+            <div class="form-group">
+              <label>IP của Sender</label>
+              <input type="text" id="r-ip" placeholder="192.168.x.x hoặc localhost" value="localhost" />
+            </div>
+            <div class="form-group">
+              <label>Port</label>
+              <input type="number" id="r-port" value="9999" min="1024" max="65535" style="width:90px;" />
+            </div>
+          </div>
+
+          <!-- AES Mode -->
+          <div class="form-group">
+            <label>Chế độ mã hoá AES</label>
+            <div class="aes-selector">
+              <input class="aes-option" type="radio" name="r_aes_mode" id="r-aes128" value="1" checked />
+              <label class="aes-label" for="r-aes128">
+                <span class="aes-name">AES-128</span>
+                <span class="aes-bits">16 bytes key</span>
+              </label>
+
+              <input class="aes-option" type="radio" name="r_aes_mode" id="r-aes192" value="2" />
+              <label class="aes-label" for="r-aes192">
+                <span class="aes-name">AES-192</span>
+                <span class="aes-bits">24 bytes key</span>
+              </label>
+
+              <input class="aes-option" type="radio" name="r_aes_mode" id="r-aes256" value="3" />
+              <label class="aes-label" for="r-aes256">
+                <span class="aes-name">AES-256</span>
+                <span class="aes-bits">32 bytes key</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Secret Key -->
+          <div class="form-group">
+            <label>Secret Key (mật khẩu)</label>
+            <div class="password-wrap">
+              <input type="password" id="r-key" placeholder="Nhập mật khẩu bảo mật..." />
+              <button type="button" class="eye-btn" onclick="togglePwd('r-key', this)">👁</button>
+            </div>
+          </div>
+
+          <button class="btn btn-receiver" id="btn-receive" onclick="startReceive()">
+            <span>📡</span> Kết nối & Nhận File
+          </button>
+
+          <!-- Received Files -->
+          <div class="form-group">
+            <label>
+              <span class="status-dot" id="files-dot"></span>File đã nhận
+              <button onclick="loadFiles()" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:11px;margin-left:6px;" title="Làm mới">↻</button>
+            </label>
+            <div class="files-list" id="files-list">
+              <div class="files-empty">Chưa có file nào...</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CONSOLE ── -->
+    <div class="console-card">
+      <div class="console-header">
+        <div class="console-dots">
+          <span class="dot-red"></span>
+          <span class="dot-yellow"></span>
+          <span class="dot-green"></span>
+        </div>
+        <span class="console-title">CONSOLE LOG</span>
+        <span class="status-dot active" id="sse-dot" style="margin-left:8px;" title="Đang kết nối SSE"></span>
+        <button class="console-clear" onclick="clearConsole()">Xoá log</button>
+      </div>
+      <div id="console-body">
+        <div class="log-line">
+          <span class="log-time">──────</span>
+          <span class="log-msg info">🔒 AES File Transfer khởi động. Chờ hoạt động...</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // ─── SSE — nhận log từ server ───
+  const consoleBody = document.getElementById('console-body');
+  const sseDot = document.getElementById('sse-dot');
+
+  function connectSSE() {
+    const es = new EventSource('/api/logs');
+    es.onmessage = (e) => {
+      const data = JSON.parse(e.data);
+      if (data.heartbeat) return;
+      appendLog(data.time, data.message, data.level);
+      // Nếu có file mới, reload danh sách
+      if (data.level === 'success' && data.message.includes('decrypted_')) {
+        setTimeout(loadFiles, 500);
+      }
+    };
+    es.onerror = () => {
+      sseDot.classList.remove('active');
+      setTimeout(connectSSE, 3000);
+    };
+    es.onopen = () => sseDot.classList.add('active');
+  }
+  connectSSE();
+
+  function appendLog(time, msg, level) {
+    const line = document.createElement('div');
+    line.className = 'log-line';
+    line.innerHTML = `<span class="log-time">${time || '--:--:--'}</span><span class="log-msg ${level || 'info'}">${escapeHtml(msg)}</span>`;
+    consoleBody.appendChild(line);
+    consoleBody.scrollTop = consoleBody.scrollHeight;
+  }
+
+  function clearConsole() {
+    consoleBody.innerHTML = '';
+  }
+
+  function escapeHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ─── FILE DROP ZONE ───
+  const dropzone = document.getElementById('dropzone');
+  const fileInput = document.getElementById('file-input');
+  const fileSelected = document.getElementById('file-selected');
+  const fileNameDisplay = document.getElementById('file-name-display');
+
+  dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) {
+      fileInput.files = e.dataTransfer.files;
+      showFileSelected(e.dataTransfer.files[0].name);
+    }
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files.length) showFileSelected(fileInput.files[0].name);
+  });
+
+  function showFileSelected(name) {
+    fileNameDisplay.textContent = name;
+    fileSelected.style.display = 'block';
+  }
+
+  // ─── SENDER FORM ───
+  document.getElementById('sender-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    if (!fileInput.files.length) {
+      appendLog('--:--:--', '⚠️ Vui lòng chọn file trước!', 'error');
+      return;
+    }
+
+    const btn = document.getElementById('btn-send');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Đang xử lý...';
+
+    const formData = new FormData(form);
+    try {
+      const res = await fetch('/api/send', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (data.error) appendLog(now(), `❌ ${data.error}`, 'error');
+    } catch (err) {
+      appendLog(now(), `❌ Lỗi gửi request: ${err}`, 'error');
+    }
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<span>🚀</span> Khởi động Server & Gửi File';
+    }, 3000);
+  });
+
+  // ─── RECEIVER ───
+  async function startReceive() {
+    const btn = document.getElementById('btn-receive');
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳</span> Đang kết nối...';
+
+    const aes_mode = document.querySelector('input[name="r_aes_mode"]:checked')?.value || '1';
+    const payload = {
+      server_ip: document.getElementById('r-ip').value,
+      port: parseInt(document.getElementById('r-port').value),
+      aes_mode: parseInt(aes_mode),
+      secret_key: document.getElementById('r-key').value
+    };
+
+    try {
+      const res = await fetch('/api/receive', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.error) appendLog(now(), `❌ ${data.error}`, 'error');
+    } catch (err) {
+      appendLog(now(), `❌ Lỗi: ${err}`, 'error');
+    }
+
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.innerHTML = '<span>📡</span> Kết nối & Nhận File';
+    }, 3000);
+  }
+
+  // ─── FILES LIST ───
+  async function loadFiles() {
+    const list = document.getElementById('files-list');
+    const dot = document.getElementById('files-dot');
+    try {
+      const res = await fetch('/api/files');
+      const files = await res.json();
+      if (!files.length) {
+        list.innerHTML = '<div class="files-empty">Chưa có file nào...</div>';
+        dot.classList.remove('active');
+        return;
+      }
+      dot.classList.add('active');
+      list.innerHTML = files.map(f => `
+        <div class="file-item">
+          <span style="font-size:14px;">📄</span>
+          <span class="file-item-name" title="${f.name}">${f.name}</span>
+          <span class="file-item-size">${formatSize(f.size)}</span>
+          <a href="/api/download/${encodeURIComponent(f.name)}" download>⬇ Tải</a>
+        </div>
+      `).join('');
+    } catch (e) {
+      list.innerHTML = '<div class="files-empty">Không tải được danh sách.</div>';
+    }
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1048576).toFixed(1) + ' MB';
+  }
+
+  function togglePwd(id, btn) {
+    const inp = document.getElementById(id);
+    if (inp.type === 'password') { inp.type = 'text'; btn.textContent = '🙈'; }
+    else { inp.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  function now() {
+    return new Date().toTimeString().slice(0, 8);
+  }
+
+  // Load files on page load
+  loadFiles();
+</script>
+</body>
+</html>
